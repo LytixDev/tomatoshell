@@ -26,21 +26,21 @@ FIN="\033[0m"
 while [[ $# -gt 0 ]]; do
   case $1 in
     -t|--time)
-      TIME="$2"
-      shift && shift # past argument and value
-      ;;
+        TIME="$2"
+        shift && shift # past argument and value
+        ;;
     -d|--delay)
-      DELAY="$2"
-      shift && shift
-      ;;
+        DELAY="$2"
+        shift && shift
+        ;;
     -m|--music)
-      MUSIC=1
-      shift && shift
-      ;;
+        MUSIC=1
+        shift && shift
+        ;;
     -n)
-      SESSIONS="$2"
-      shift && shift
-      ;;
+        SESSIONS="$2"
+        shift && shift
+        ;;
     -f)
         FIGLET=1
         shift
@@ -54,7 +54,8 @@ done
 countdown() {
     # start cmus music
     start=$((`date +%s` + $1)); 
-    while [ "$start" -ge `date +%s` ]; do 
+    while [ "$start" -ge `date +%s` ]
+    do
         [ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN 🍅\r"
         sleep 1
