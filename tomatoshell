@@ -2,16 +2,19 @@
 
 # written by Nicolai Brand (lytix), 01.01.2022
 
-# -t, --time, time for every session in minutes [default:15 minutes]
-# -d, --delay, delay between sessions in minutes [default:5 minutes]
-# -m, --music, chose song for cmus to play during each session
-# -n, total sessions [default:4]
-# -f, figlet on
-# -s, --song, full path to song to be played by cmus
+HELP="
+ -t, --time,    time for every session in minutes [default:15 minutes]
+ -d, --delay,   delay between sessions in minutes [default:5 minutes]
+ -m, --music,   chose song for cmus to play during each session
+ -n,            total sessions [default:4]
+ -f,            figlet on
+ -s, --song,    full path to song to be played by cmus
+ -h, --help,    shows this"
 
 TIME=15
 DELAY=5
 SESSIONS=4
+
 # 0 -> off, 1 -> on
 MUSIC=0
 FIGLET=0
@@ -50,13 +53,23 @@ while [[ $# -gt 0 ]]; do
         FIGLET=1
         shift
         ;;
+    -s|--song)
+        SONG="$2"
+        shift && shift
+        ;;
+    -h|--help)
+        echo -e "$HELP"
+        exit 0
+        ;;
     *)
-        shift
+        echo "Unknown option $1"
+        exit 1
         ;;
   esac
 done
 
 countdown() {
+    # args: $1 -> length of countdown in seconds, $2, session number (-1 = break)
     start=$((`date +%s` + $1)); 
     while [ "$start" -ge `date +%s` ]
     do
@@ -66,21 +79,30 @@ countdown() {
         # lower number -> more cpu usages -> less time discrepency on stdout
         sleep 1
     done
-    
-    # when session is finished, start the alarm
-    # move notify-send here
-    # move 'session x/y is finished' here
-    # maybe have 00:00 countdown here
+   
+    # session finished
+    clear
+    [ $2 -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $2 finished" &&
+    echo -e ""$GREEN"Session $2/$SESSIONS finished$FIN" ||
+    echo -e ""$GREEN"Break finished$FIN"
     
     # stop music before alarm
     [ $MUSIC -eq 1 ] && music_pause
 
-    echo "Press 's' to stop alarm"
+    # when session is finished, start the alarm
+    printf "Press 's' to stop alarm"
+    [ $2 -eq -1 ] && echo " and start next session" || echo ""
+
     while :
     do
         # play alarm sound indefinetely until the 's' key is pressed
         # alsa
-        aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1 && [[ $REPLY == 's' ]] && kill `pidof aplay` && break
+        aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
+        if [[ $REPLY == 's' ]]
+        then 
+            kill `pidof aplay`
+            break
+        fi
         # pulseaudio
         #paplay $ALARM &>/dev/null & read -t 0.01 -r -s -N 1 && [[ $REPLY == 's' ]] && kill `pidof paplay` && break
     done
@@ -120,16 +142,11 @@ do
     clear
     echo "Time left of session $i/$SESSIONS:"
     [ $MUSIC -eq 1 ] && music_start
-    countdown $TIME
-
-    # session finished
-    notify-send -t 10000 -u "normal" "Session number $i finished"
-    clear
-    echo -e ""$GREEN"Session $i/$SESSIONS finished$FIN"
+    countdown $TIME $i
 
     # break
     # don't want to have a break after last session
-    [ $i -ne $SESSIONS ] && echo "Time left of break:" && countdown $DELAY
+    [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
 done
 
 # exit program
