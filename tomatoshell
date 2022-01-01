@@ -14,6 +14,8 @@ MUSIC=0
 FIGLET=0
 SESSIONS=4
 
+ALARM="alarm.wav"
+
 # colors
 RED="\033[0;31m"
 GREEN="\033[0;32m"
@@ -59,6 +61,12 @@ countdown() {
         [ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN 🍅\r"
         sleep 1
+    done
+    #echo "Press 's' to stop alarm" && read -s & aplay $ALARM &>/dev/null
+    #read -s && echo $REPLY
+    while :
+    do
+        aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1 && [[ $REPLY == 's' ]] && kill `pidof aplay` && break
     done
     return 0
 }
