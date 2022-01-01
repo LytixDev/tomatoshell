@@ -7,14 +7,17 @@
 # -m, --music, chose song for cmus to play during each session
 # -n, total sessions [default:4]
 # -f, figlet on
+# -s, --song, full path to song to be played by cmus
 
 TIME=15
 DELAY=5
+SESSIONS=4
+# 0 -> off, 1 -> on
 MUSIC=0
 FIGLET=0
-SESSIONS=4
 
 ALARM="alarm.wav"
+SONG="$HOME/Music/burzum-pomodoro.mp3"
 
 # colors
 RED="\033[0;31m"
@@ -54,19 +57,32 @@ while [[ $# -gt 0 ]]; do
 done
 
 countdown() {
-    # start cmus music
     start=$((`date +%s` + $1)); 
     while [ "$start" -ge `date +%s` ]
     do
         [ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN 🍅\r"
+        # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
+        # lower number -> more cpu usages -> less time discrepency on stdout
         sleep 1
     done
-    #echo "Press 's' to stop alarm" && read -s & aplay $ALARM &>/dev/null
-    #read -s && echo $REPLY
+    
+    # when session is finished, start the alarm
+    # move notify-send here
+    # move 'session x/y is finished' here
+    # maybe have 00:00 countdown here
+    
+    # stop music before alarm
+    [ $MUSIC -eq 1 ] && music_pause
+
+    echo "Press 's' to stop alarm"
     while :
     do
+        # play alarm sound indefinetely until the 's' key is pressed
+        # alsa
         aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1 && [[ $REPLY == 's' ]] && kill `pidof aplay` && break
+        # pulseaudio
+        #paplay $ALARM &>/dev/null & read -t 0.01 -r -s -N 1 && [[ $REPLY == 's' ]] && kill `pidof paplay` && break
     done
     return 0
 }
@@ -74,8 +90,17 @@ countdown() {
 exit_p() {
     # turn on cursor again
     tput cnorm
+    [ $MUSIC -eq 1 ] && cmus-remote -U
     echo -e ""$RED"\nexiting$FIN"
     exit 0
+}
+
+music_pause() {
+    cmus-remote -U
+}
+
+music_start() {
+    cmus-remote -C "player-play $SONG"
 }
  
 # when SIGINT is received, exit
@@ -91,14 +116,18 @@ tput civis
 
 for ((i = 1; i <= $SESSIONS; i++))
 do
+    # session
     clear
-    # reset color
     echo "Time left of session $i/$SESSIONS:"
+    [ $MUSIC -eq 1 ] && music_start
     countdown $TIME
 
+    # session finished
     notify-send -t 10000 -u "normal" "Session number $i finished"
     clear
     echo -e ""$GREEN"Session $i/$SESSIONS finished$FIN"
+
+    # break
     # don't want to have a break after last session
     [ $i -ne $SESSIONS ] && echo "Time left of break:" && countdown $DELAY
 done
