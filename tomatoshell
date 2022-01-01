@@ -2,18 +2,16 @@
 
 # written by Nicolai Brand (lytix), 01.01.2022
 
-# bar
-#https://stackoverflow.com/questions/238073/how-to-add-a-progress-bar-to-a-shell-script
-
-
 # -t, --time, time for every session in minutes [default:15 minutes]
 # -d, --delay, delay between sessions in minutes [default:5 minutes]
 # -m, --music, chose song for cmus to play during each session
 # -n, total sessions [default:4]
+# -f, figlet on
 
-TIME=5
-DELAY=3
+TIME=15
+DELAY=5
 MUSIC=0
+FIGLET=0
 SESSIONS=4
 
 # colors
@@ -42,6 +40,13 @@ while [[ $# -gt 0 ]]; do
       SESSIONS="$2"
       shift && shift
       ;;
+    -f)
+        FIGLET=1
+        shift
+        ;;
+    *)
+        shift
+        ;;
   esac
 done
 
@@ -49,10 +54,9 @@ countdown() {
     # start cmus music
     start=$((`date +%s` + $1)); 
     while [ "$start" -ge `date +%s` ]; do 
+        [ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c ||
         echo -ne "$YELLOW$(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN\r"
-        #clear
-        #echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c
-        sleep 0.1
+        sleep 1
     done
     return 0
 }
@@ -90,4 +94,4 @@ do
 done
 
 # exit program
-exit_p
+exit_p 0
