@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# color
-#https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
+# written by Nicolai Brand (lytix), 01.01.2022
 
 # bar
 #https://stackoverflow.com/questions/238073/how-to-add-a-progress-bar-to-a-shell-script
@@ -12,15 +11,16 @@
 # -m, --music, chose song for cmus to play during each session
 # -n, total sessions [default:4]
 
-TIME=15
-DELAY=5
+TIME=5
+DELAY=3
 MUSIC=0
 SESSIONS=4
 
 # colors
+RED="\033[0;31m"
 GREEN="\033[0;32m"
-
-#current_session=1
+YELLOW="\033[0;33m"
+FIN="\033[0m"
 
 # argument handling
 
@@ -45,19 +45,35 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-#echo "-t $TIME, -d $DELAY, -m $MUSIC, -n $SESSIONS"
-
 countdown() {
     # start cmus music
     start=$((`date +%s` + $1)); 
     while [ "$start" -ge `date +%s` ]; do 
-        echo -ne "$GREEN$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r"
+        echo -ne "$YELLOW$(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN\r"
         #clear
         #echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c
         sleep 0.1
     done
     return 0
 }
+
+exit_p() {
+    # turn on cursor again
+    tput cnorm
+    echo -e ""$RED"\nexiting$FIN"
+    exit 0
+}
+ 
+# when SIGINT is received, exit
+trap "exit_p" 2
+
+# convert time and delay to from minutes to seconds
+# have to divide by 1 to always get integer result
+TIME=$(echo "($TIME * 60)/1" | bc)
+DELAY=$(echo "($DELAY * 60)/1" | bc)
+
+# turn off cursor
+tput civis
 
 for ((i = 1; i <= $SESSIONS; i++))
 do
@@ -68,7 +84,10 @@ do
 
     notify-send -t 10000 -u "normal" "Session number $i finished"
     clear
-    echo "Session $i/$SESSIONS finished"
+    echo -e ""$GREEN"Session $i/$SESSIONS finished$FIN"
     # don't want to have a break after last session
-    [ i != $SESSIONS ] && countdown $DELAY
+    [ $i -ne $SESSIONS ] && echo "Time left of break:" && countdown $DELAY
 done
+
+# exit program
+exit_p
