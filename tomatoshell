@@ -70,12 +70,17 @@ done
 
 countdown() {
     # args: $1 -> length of countdown in seconds, $2, session number (-1 = break)
-    msg="Time left of current session🍅:"
+    msg="🍅Time left of session $2/$SESSIONS:🍅"
+    [ "$2" -eq -1 ] && msg="🍅Time left of break:🍅"
+    # date in seconds when countdown will end
     start=$((`date +%s` + $1)); 
     while [ "$start" -ge `date +%s` ]
     do
 
-        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS)/2)) "$msg" && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c -t ||
+        # due to the rendering of emoji's, the text needs to be offset to appear at the center
+        print_offset=10
+        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c -t ||
+        #[ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN 🍅\r"
         # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
         # lower number -> more cpu usages -> less time discrepency on stdout
@@ -84,9 +89,16 @@ countdown() {
    
     # session finished
     clear
-    [ $2 -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $2 finished" &&
-    echo -e ""$GREEN"Session $2/$SESSIONS finished$FIN" ||
-    echo -e ""$GREEN"Break finished$FIN"
+    [ $2 -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $2 finished"
+    
+    # message when session is finished
+    if [ $FIGLET -eq 1 ]
+    then
+        [ $2 -ne -1 ] && figlet -c -t "Session $2/$SESSIONS finished" || figlet -c -t "Break finished"
+    else
+
+        [ $2 -ne -1 ] && echo -e ""$GREEN"Session $2/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
+    fi
     
     # stop music before alarm
     [ $MUSIC -eq 1 ] && music_pause
