@@ -22,7 +22,7 @@ cd tomatoshell
  
  -d, --delay,   delay between sessions in minutes [default:5 minutes]
  
- -m, --music,   chose song for cmus to play during each session
+ -m, --music,   chose song for cmus to play during each session (full path)
  
  -n,            total sessions [default:4]
  
@@ -31,4 +31,11 @@ cd tomatoshell
  -s, --song,    full path to song to be played by cmus
  
  -h, --help,    shows this
+
+ex:
+
+tomatoshell -n 2 -m /home/nic/Music/song.mp3 -t 30
+
+This will start the program with two sessions, play the song given during the session, and each session lasts for 30 minutes.
+
 
