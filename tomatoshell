@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     -m|--music)
         MUSIC=1
-        shift && shift
+        shift
         ;;
     -n)
         SESSIONS="$2"
@@ -70,10 +70,12 @@ done
 
 countdown() {
     # args: $1 -> length of countdown in seconds, $2, session number (-1 = break)
+    msg="Time left of current session🍅:"
     start=$((`date +%s` + $1)); 
     while [ "$start" -ge `date +%s` ]
     do
-        [ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c ||
+
+        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS)/2)) "$msg" && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN 🍅\r"
         # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
         # lower number -> more cpu usages -> less time discrepency on stdout
