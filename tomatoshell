@@ -3,13 +3,13 @@
 # written by Nicolai Brand (lytix), 01.01.2022
 
 HELP="
- -t, --time,    time for every session in minutes [default:15 minutes]
- -d, --delay,   delay between sessions in minutes [default:5 minutes]
- -m, --music,   chose song for cmus to play during each session
- -n,            total sessions [default:4]
- -f,            figlet on
- -s, --song,    full path to song to be played by cmus
- -h, --help,    shows this"
+-t, --time,    time for every session in minutes [default:15 minutes]
+-d, --delay,   delay between sessions in minutes [default:5 minutes]
+-m, --music,   chose song for cmus to play during each session
+-n,            total sessions [default:4]
+-f,            figlet on
+-s, --song,    full path to song to be played by cmus
+-h, --help,    shows this"
 
 TIME=15
 DELAY=5
@@ -30,42 +30,42 @@ CYAN="\033[0;34m"
 FIN="\033[0m"
 
 # argument handling
-
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    -t|--time)
-        TIME="$2"
-        shift && shift # past argument and value
-        ;;
-    -d|--delay)
-        DELAY="$2"
-        shift && shift
-        ;;
-    -m|--music)
-        MUSIC=1
-        shift
-        ;;
-    -n)
-        SESSIONS="$2"
-        shift && shift
-        ;;
-    -f)
-        FIGLET=1
-        shift
-        ;;
-    -s|--song)
-        SONG="$2"
-        shift && shift
-        ;;
-    -h|--help)
-        echo -e "$HELP"
-        exit 0
-        ;;
-    *)
-        echo "Unknown option $1"
-        exit 1
-        ;;
-  esac
+while [[ $# -gt 0 ]]
+do
+    case $1 in
+        -t|--time)
+            TIME="$2"
+            shift && shift # past argument and value
+            ;;
+        -d|--delay)
+            DELAY="$2"
+            shift && shift
+            ;;
+        -m|--music)
+            MUSIC=1
+            shift
+            ;;
+        -n)
+            SESSIONS="$2"
+            shift && shift
+            ;;
+        -f)
+            FIGLET=1
+            shift
+            ;;
+        -s|--song)
+            SONG="$2"
+            shift && shift
+            ;;
+        -h|--help)
+            echo -e "$HELP"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option $1"
+            exit 1
+            ;;
+    esac
 done
 
 countdown() {
@@ -73,15 +73,15 @@ countdown() {
     msg="🍅Time left of session $2/$SESSIONS:🍅"
     [ "$2" -eq -1 ] && msg="🍅Time left of break:🍅"
     # date in seconds when countdown will end
-    start=$((`date +%s` + $1)); 
-    while [ "$start" -ge `date +%s` ]
-    do
+    start=$(("$(date +%s)" + $1)); 
 
+    while [ "$start" -ge "$(date +%s)" ]
+    do
         # due to the rendering of emoji's, the text needs to be offset to appear at the center
         print_offset=10
-        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c -t ||
-        #[ $FIGLET -eq 1 ] && clear && echo -ne "$(date -u --date @$(($start - `date +%s`)) +%M:%S)\r" | figlet -c -t ||
-        echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$(($start - `date +%s`)) +%M:%S)$FIN 🍅\r"
+        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
+        && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
+        echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
         # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
         # lower number -> more cpu usages -> less time discrepency on stdout
         sleep 1
@@ -107,28 +107,36 @@ countdown() {
     printf "Press 's' to stop alarm"
     [ $2 -eq -1 ] && echo " and start next session" || echo ""
 
+    # turn on keypress again
+    stty echo
     while :
     do
         # play alarm sound indefinetely until the 's' key is pressed
         # alsa
-        aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
+        # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
+        # if multiple instances of paplay is running, this will result in unwanted behavior
+        # TO-DO store PID of this paplay instance
+        [ -e /proc/$(pidof paplay)/status ] || paplay $ALARM &>/dev/null & read -t 0.01 -r -s -n 1
+    
         if [[ $REPLY == 's' ]]
         then 
-            kill `pidof aplay`
+            kill $(pidof paplay)
             break
         fi
-        # pulseaudio
-        #paplay $ALARM &>/dev/null & read -t 0.01 -r -s -N 1 && [[ $REPLY == 's' ]] && kill `pidof paplay` && break
     done
+    # turn off keypress after input received
+    stty -echo
     return 0
 }
 
 exit_p() {
     # turn on cursor again
     tput cnorm
+    # turn on keyboard input again
+    stty echo
     [ $MUSIC -eq 1 ] && cmus-remote -U
     echo -e ""$RED"\nexiting$FIN"
-    exit 0
+    exit $1
 }
 
 music_pause() {
@@ -139,29 +147,34 @@ music_start() {
     cmus-remote -C "player-play $SONG"
 }
  
-# when SIGINT is received, exit
-trap "exit_p" 2
+main() {
+    # when SIGINT is received, exit
+    # necessary because 
+    trap "exit_p" 2
+    # turn off keyboard input
+    stty -echo
 
-# convert time and delay to from minutes to seconds
-# have to divide by 1 to always get integer result
-TIME=$(echo "($TIME * 60)/1" | bc)
-DELAY=$(echo "($DELAY * 60)/1" | bc)
+    # convert time and delay to from minutes to seconds
+    # have to divide by 1 to always get integer result
+    TIME=$(echo "($TIME * 60)/1" | bc)
+    DELAY=$(echo "($DELAY * 60)/1" | bc)
 
-# turn off cursor
-tput civis
+    # turn off cursor
+    tput civis
 
-for ((i = 1; i <= $SESSIONS; i++))
-do
-    # session
-    clear
-    echo "Time left of session $i/$SESSIONS:"
-    [ $MUSIC -eq 1 ] && music_start
-    countdown $TIME $i
+    for ((i = 1; i <= $SESSIONS; i++))
+    do
+        # session
+        clear
+        echo "Time left of session $i/$SESSIONS:"
+        [ $MUSIC -eq 1 ] && music_start
+        countdown $TIME $i
 
-    # break
-    # don't want to have a break after last session
-    [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
-done
+        # break
+        # don't want to have a break after last session
+        [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
+    done
+}
 
-# exit program
+main
 exit_p 0
