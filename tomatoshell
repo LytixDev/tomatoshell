@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # written by Nicolai Brand (lytix), 01.01.2022
 
@@ -73,7 +73,7 @@ countdown() {
     msg="🍅Time left of session $2/$SESSIONS:🍅"
     [ "$2" -eq -1 ] && msg="🍅Time left of break:🍅"
     # date in seconds when countdown will end
-    start=$(("$(date +%s)" + $1)); 
+    start=$(($(date +%s) + $1)); 
 
     while [ "$start" -ge "$(date +%s)" ]
     do
