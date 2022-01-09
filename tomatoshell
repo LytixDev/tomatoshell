@@ -109,18 +109,19 @@ countdown() {
 
     # turn on keypress again
     stty echo
+
+    process_name="paplay_tomatoshell"
     while :
     do
         # play alarm sound indefinetely until the 's' key is pressed
         # alsa
         # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
-        # if multiple instances of paplay is running, this will result in unwanted behavior
-        # TO-DO store PID of this paplay instance
-        [ -e /proc/$(pidof paplay)/status ] || paplay $ALARM &>/dev/null & read -t 0.01 -r -s -n 1
+        [ -e /proc/"$(pidof "$process_name")"/status ] ||
+            bash -c "exec -a \"$process_name\" paplay \"$ALARM\" >/dev/null" & read -t 0.01 -r -s -n 1
     
         if [[ $REPLY == 's' ]]
         then 
-            kill $(pidof paplay)
+            pkill -f "$process_name"
             break
         fi
     done
