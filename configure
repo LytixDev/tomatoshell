@@ -1,0 +1,69 @@
+#!/bin/sh
+
+# Copyright 24.03.2022 Nicolai Brand
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+
+name="tomatoshell"
+name_log="tomatoshell_log.csv"
+bin_dir="/usr/local/bin"
+log_dir="$HOME/.local/share/$name"
+
+
+install() {
+    cp $name $bin_dir &&
+    mkdir -p "$log_dir" &&
+    touch "$log_dir/$name_log" &&
+    exit 0
+}
+
+
+uninstall() {
+    rm "$bin_dir/$name" &&
+    rm -rf "$log_dir" &&
+    exit 0
+}
+
+
+clean() {
+    rm "$log_dir/$name_log" &&
+    touch "$log_dir/$name_log" &&
+    exit 0
+}
+
+
+print_help() {
+    echo "usage: 'install', 'uninstall', 'clean'." &&
+    echo "example: '$ ./configure install' to install the program." &&
+    exit 1
+}
+
+
+[ "$#" -eq 0 ] && print_help
+
+if [ "$1" = "install" ]
+then
+    install || exit 1
+fi
+
+if [ "$1" = "uninstall" ]
+then 
+    uninstall || exit 1
+fi
+
+[ "$1" = "clean" ] && clean
+
+# if program executions ends here it means the user typed an invalid argument
+# i use printf here because echo -e is undefined in POSIX sh
+printf "%s\n\n" "invalid argument '$1'." && print_help
