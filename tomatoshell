@@ -1,26 +1,36 @@
 #!/usr/bin/env bash
 
-# written by Nicolai Brand (lytix), 01.01.2022
+# Copyright 01.01.2022 - 24.03.2022 Nicolai Brand
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 HELP="
--t, --time,    time for every session in minutes [default:15 minutes]
--d, --delay,   delay between sessions in minutes [default:5 minutes]
--m, --music,   chose song for cmus to play during each session
--n,            total sessions [default:4]
--f,            figlet on
--s, --song,    full path to song to be played by cmus
--h, --help,    shows this"
+-t,     time for every session in minutes [default:15 minutes]
+-d,     delay between sessions in minutes [default:5 minutes]
+-n,     total sessions [default:4]
+-f,     figlet on
+-h,     shows this"
 
 TIME=15
 DELAY=5
 SESSIONS=4
 
 # 0 -> off, 1 -> on
-MUSIC=0
 FIGLET=0
 
-ALARM="alarm.wav"
-SONG="$HOME/Music/burzum-pomodoro.mp3"
+ALARM="etc/alarm.wav"
+AUDIO_PLAYER=3
 
 # colors
 RED="\033[0;31m"
@@ -41,10 +51,6 @@ do
             DELAY="$2"
             shift && shift
             ;;
-        -m|--music)
-            MUSIC=1
-            shift
-            ;;
         -n)
             SESSIONS="$2"
             shift && shift
@@ -52,10 +58,6 @@ do
         -f)
             FIGLET=1
             shift
-            ;;
-        -s|--song)
-            SONG="$2"
-            shift && shift
             ;;
         -h|--help)
             echo -e "$HELP"
@@ -68,6 +70,55 @@ do
     esac
 done
 
+
+find_sound_system() {
+    # use mpv if installed -> 0
+    # use paplay for pulseaudio -> 1
+    # fall back on aplay (alsa) if no pulseaudio/pipewire -> 2
+    # all fail -> 3
+
+    if command -v mpv &> /dev/null
+    then
+        return 0
+    fi
+
+    if command -v paplay &> /dev/null
+    then
+        return 1
+    fi
+
+    if command -v aplay &> /dev/null
+    then
+        return 2
+    fi
+
+    return 3
+}
+
+
+play_alarm() {
+    return 0
+}
+
+
+display_countdown() {
+    start=$1
+
+    # yeahhhh I don̈́'t know what's going on here either
+    while [ "$start" -ge "$(date +%s)" ]
+    do
+        # due to the rendering of emoji's, the text needs to be offset to appear at the center.
+        # sleeping for one second between each print to stdout uses less cpu power, but will
+        # make the countdown have a discrepency of 1s which is negligable.
+        print_offset=10
+        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
+        && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
+        echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
+        sleep 1
+    done
+}
+
+
 countdown() {
     # args: $1 -> length of countdown in seconds, $2, session number (-1 = break)
     msg="🍅Time left of session $2/$SESSIONS:🍅"
@@ -75,17 +126,20 @@ countdown() {
     # date in seconds when countdown will end
     start=$(($(date +%s) + $1)); 
 
-    while [ "$start" -ge "$(date +%s)" ]
-    do
-        # due to the rendering of emoji's, the text needs to be offset to appear at the center
-        print_offset=10
-        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
-        && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
-        echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
-        # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
-        # lower number -> more cpu usages -> less time discrepency on stdout
-        sleep 1
-    done
+    display_countdown $start
+
+
+    #while [ "$start" -ge "$(date +%s)" ]
+    #do
+    #    # due to the rendering of emoji's, the text needs to be offset to appear at the center
+    #    print_offset=10
+    #    [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
+    #    && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
+    #    echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
+    #    # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
+    #    # lower number -> more cpu usages -> less time discrepency on stdout
+    #    sleep 1
+    #done
    
     # session finished
     clear
@@ -100,9 +154,6 @@ countdown() {
         [ $2 -ne -1 ] && echo -e ""$GREEN"Session $2/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
     fi
     
-    # stop music before alarm
-    [ $MUSIC -eq 1 ] && music_pause
-
     # when session is finished, start the alarm
     printf "Press 's' to stop alarm"
     [ $2 -eq -1 ] && echo " and start next session" || echo ""
@@ -117,7 +168,7 @@ countdown() {
         # alsa
         # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
         [ -e /proc/"$(pidof "$process_name")"/status ] ||
-            bash -c "exec -a \"$process_name\" paplay \"$ALARM\" >/dev/null" & read -t 0.01 -r -s -n 1
+            bash -c "exec -a \"$process_name\" $AUDIO_PLAYER \"$ALARM\" >/dev/null" & read -t 0.01 -r -s -n 1
     
         if [[ $REPLY == 's' ]]
         then 
@@ -130,52 +181,45 @@ countdown() {
     return 0
 }
 
+
 exit_p() {
     # turn on cursor again
     tput cnorm
     # turn on keyboard input again
     stty echo
-    [ $MUSIC -eq 1 ] && cmus-remote -U
+
     echo -e ""$RED"\nexiting$FIN"
     exit $1
 }
 
-music_pause() {
-    cmus-remote -U
-}
 
-music_start() {
-    cmus-remote -C "player-play $SONG"
-}
- 
 main() {
+    find_sound_system
+    AUDIO_PLAYER=$?
+
     # when SIGINT is received, exit
-    # necessary because 
     trap "exit_p" 2
-    # turn off keyboard input
+
+    # turn off keyboard input and cursor
     stty -echo
+    tput civis
 
     # convert time and delay to from minutes to seconds
     # have to divide by 1 to always get integer result
     TIME=$(echo "($TIME * 60)/1" | bc)
     DELAY=$(echo "($DELAY * 60)/1" | bc)
 
-    # turn off cursor
-    tput civis
-
     for ((i = 1; i <= $SESSIONS; i++))
     do
-        # session
         clear
         echo "Time left of session $i/$SESSIONS:"
-        [ $MUSIC -eq 1 ] && music_start
         countdown $TIME $i
 
-        # break
         # don't want to have a break after last session
         [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
     done
 }
+
 
 main
 exit_p 0
