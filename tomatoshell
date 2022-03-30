@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 01.01.2022 - 24.03.2022 Nicolai Brand
+# Copyright 01.01.2022 - 30.03.2022 Nicolai Brand
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -22,15 +22,13 @@ HELP="
 -f,     figlet on
 -h,     shows this"
 
+# defaults
 TIME=15
 DELAY=5
 SESSIONS=4
 
-# 0 -> off, 1 -> on
-FIGLET=0
-
+FIGLET=false
 ALARM="etc/alarm.wav"
-AUDIO_PLAYER=3
 
 # colors
 RED="\033[0;31m"
@@ -38,6 +36,7 @@ GREEN="\033[0;32m"
 YELLOW="\033[0;33m"
 CYAN="\033[0;34m"
 FIN="\033[0m"
+
 
 # argument handling
 while [[ $# -gt 0 ]]
@@ -56,7 +55,18 @@ do
             shift && shift
             ;;
         -f)
-            FIGLET=1
+            if command -v figlet &> /dev/null
+            then
+                FIGLET=true
+            else
+                FIGLET=false
+                echo -e ""$RED"ERROR$FIN: argument '-f' was given, but figlet is not installed"
+                echo "Starting without figlet in 3 seconds"
+                # maybe add a keypress to start regardless
+                sleep 3
+            fi
+
+
             shift
             ;;
         -h|--help)
@@ -70,7 +80,7 @@ do
     esac
 done
 
-
+ 
 find_sound_system() {
     # use mpv if installed -> 0
     # use paplay for pulseaudio -> 1
@@ -97,7 +107,28 @@ find_sound_system() {
 
 
 play_alarm() {
-    return 0
+    # when session is finished, start the alarm
+    printf "Press 's' to stop alarm"
+    [ $1 -eq -1 ] && echo " and start next session" || echo ""
+
+    # turn on keypress again
+    stty echo
+
+    process_name="tomatoshell_alarm"
+    while :
+    do
+        # play alarm sound indefinetely until the 's' key is pressed
+        # alsa
+        # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
+        [ -e /proc/"$(pidof "$process_name")"/status ] ||
+            bash -c "exec -a \"$process_name\" $AUDIO_PLAYER \"~/Documents/tomatoshell/etc/alarm.wav\" >/dev/null" & read -t 0.01 -r -s -n 1
+    
+        if [[ $REPLY == 's' ]]
+        then 
+            pkill -f "$process_name"
+            break
+        fi
+    done
 }
 
 
@@ -111,7 +142,7 @@ display_countdown() {
         # sleeping for one second between each print to stdout uses less cpu power, but will
         # make the countdown have a discrepency of 1s which is negligable.
         print_offset=10
-        [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
+        $FIGLET && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
         && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
         sleep 1
@@ -125,23 +156,10 @@ countdown() {
     [ "$2" -eq -1 ] && msg="🍅Time left of break:🍅"
     # date in seconds when countdown will end
     start=$(($(date +%s) + $1)); 
+    session_number=$1
 
     display_countdown $start
 
-
-    #while [ "$start" -ge "$(date +%s)" ]
-    #do
-    #    # due to the rendering of emoji's, the text needs to be offset to appear at the center
-    #    print_offset=10
-    #    [ $FIGLET -eq 1 ] && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
-    #    && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
-    #    echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
-    #    # sleeping for one second between each print to stdout uses less cpu power, but will make the countdown have a discrepency of 1s which is negligable
-    #    # lower number -> more cpu usages -> less time discrepency on stdout
-    #    sleep 1
-    #done
-   
-    # session finished
     clear
     [ $2 -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $2 finished"
     
@@ -153,29 +171,9 @@ countdown() {
 
         [ $2 -ne -1 ] && echo -e ""$GREEN"Session $2/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
     fi
-    
-    # when session is finished, start the alarm
-    printf "Press 's' to stop alarm"
-    [ $2 -eq -1 ] && echo " and start next session" || echo ""
 
-    # turn on keypress again
-    stty echo
-
-    process_name="paplay_tomatoshell"
-    while :
-    do
-        # play alarm sound indefinetely until the 's' key is pressed
-        # alsa
-        # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
-        [ -e /proc/"$(pidof "$process_name")"/status ] ||
-            bash -c "exec -a \"$process_name\" $AUDIO_PLAYER \"$ALARM\" >/dev/null" & read -t 0.01 -r -s -n 1
+    play_alarm "$session_number"
     
-        if [[ $REPLY == 's' ]]
-        then 
-            pkill -f "$process_name"
-            break
-        fi
-    done
     # turn off keypress after input received
     stty -echo
     return 0
