@@ -29,6 +29,7 @@ SESSIONS=4
 
 FIGLET=false
 ALARM="etc/alarm.wav"
+AUDIO_PLAYER=3
 
 # colors
 RED="\033[0;31m"
@@ -82,27 +83,22 @@ done
 
  
 find_sound_system() {
-    # use mpv if installed -> 0
-    # use paplay for pulseaudio -> 1
-    # fall back on aplay (alsa) if no pulseaudio/pipewire -> 2
-    # all fail -> 3
 
     if command -v mpv &> /dev/null
     then
-        return 0
-    fi
+        AUDIO_PLAYER=mpv
 
-    if command -v paplay &> /dev/null
+    elif command -v paplay &> /dev/null
     then
-        return 1
-    fi
+        AUDIO_PLAYER=paplay
 
-    if command -v aplay &> /dev/null
+    elif command -v aplay &> /dev/null
     then
-        return 2
+        AUDIO_PLAYER=paplay
+   
+    else
+        AUDIO_PLAYER=0
     fi
-
-    return 3
 }
 
 
@@ -115,10 +111,10 @@ play_alarm() {
     stty echo
 
     process_name="tomatoshell_alarm"
+
     while :
     do
         # play alarm sound indefinetely until the 's' key is pressed
-        # alsa
         # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
         [ -e /proc/"$(pidof "$process_name")"/status ] ||
             bash -c "exec -a \"$process_name\" $AUDIO_PLAYER \"~/Documents/tomatoshell/etc/alarm.wav\" >/dev/null" & read -t 0.01 -r -s -n 1
@@ -193,7 +189,6 @@ exit_p() {
 
 main() {
     find_sound_system
-    AUDIO_PLAYER=$?
 
     # when SIGINT is received, exit
     trap "exit_p" 2
