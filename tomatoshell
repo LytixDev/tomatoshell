@@ -38,6 +38,138 @@ YELLOW="\033[0;33m"
 CYAN="\033[0;34m"
 FIN="\033[0m"
 
+ 
+find_sound_system() {
+
+    if command -v mpv &> /dev/null
+    then
+        AUDIO_PLAYER=mpv
+
+    elif command -v paplay &> /dev/null
+    then
+        AUDIO_PLAYER=paplay
+
+    elif command -v aplay &> /dev/null
+    then
+        AUDIO_PLAYER=paplay
+   
+    else
+        AUDIO_PLAYER=0
+    fi
+}
+
+
+play_alarm() {
+    # when session is finished, start the alarm
+    printf "Press 's' to stop alarm"
+    [ $1 -eq -1 ] && echo " and start next session" || echo ""
+
+    process_name="tomatoshell_alarm"
+
+    while :
+    do
+        # play alarm sound indefinetely until the 's' key is pressed
+
+        if ! [ -e /proc/"$(pidof "$process_name")"/status ]
+        then
+            # janky :/
+            bash -c "exec -a $process_name $AUDIO_PLAYER $ALARM &>/dev/null" &
+        else
+            read -t 0.01 -r -s -n 1
+            [[ $REPLY == 's' ]] && pkill -f "$process_name" && break
+        fi
+    
+    done
+}
+
+
+display_countdown() {
+    start=$1
+
+    # yeahhhh I don̈́'t know what's going on here either
+    while [ "$start" -ge "$(date +%s)" ]
+    do
+        # due to the rendering of emoji's, the text needs to be offset to appear at the center.
+        # sleeping for one second between each print to stdout uses less cpu power, but will
+        # make the countdown have a discrepency of 1s which is negligable.
+        print_offset=10
+        $FIGLET && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
+        && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
+        echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
+        sleep 1
+    done
+}
+
+
+countdown() {
+    time=$1
+    session_number=$2
+    msg="🍅Time left of session $session_number/$SESSIONS:🍅"
+    [ $session_number -eq -1 ] && msg="🍅Time left of break:🍅"
+
+    # date in seconds when countdown will end
+    start=$(($(date +%s) + $1)); 
+
+    display_countdown $start
+    clear
+
+    [ $session_number -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $session_number finished"
+    
+    # message when session is finished
+    if $FIGLET
+    then
+        [ $session_number -ne -1 ] && figlet -c -t "Session $session_number/$SESSIONS finished" || figlet -c -t "Break finished"
+    else
+
+        [ $session_number -ne -1 ] && echo -e ""$GREEN"Session $session_number/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
+    fi
+
+    # turn on keypress so we can receive input from user as to when to stop the alarm
+    stty echo
+    play_alarm "$session_number"
+    stty -echo
+
+    return 0
+}
+
+
+exit_p() {
+    # turn on cursor again
+    tput cnorm
+    # turn on keyboard input again
+    stty echo
+
+    echo -e ""$RED"\nexiting$FIN"
+    exit $1
+}
+
+
+main() {
+    find_sound_system
+
+    # when SIGINT is received, exit
+    trap "exit_p" 2
+
+    # turn off keyboard input and cursor
+    stty -echo
+    tput civis
+
+    # convert time and delay to from minutes to seconds
+    # have to divide by 1 to always get integer result
+    TIME=$(echo "($TIME * 60)/1" | bc)
+    DELAY=$(echo "($DELAY * 60)/1" | bc)
+
+    for ((i = 1; i <= $SESSIONS; i++))
+    do
+        clear
+        echo "Time left of session $i/$SESSIONS:"
+        countdown $TIME $i
+
+        # don't want to have a break after last session
+        [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
+    done
+}
+
 
 # argument handling
 while [[ $# -gt 0 ]]
@@ -80,139 +212,6 @@ do
             ;;
     esac
 done
-
- 
-find_sound_system() {
-
-    if command -v mpv &> /dev/null
-    then
-        AUDIO_PLAYER=mpv
-
-    elif command -v paplay &> /dev/null
-    then
-        AUDIO_PLAYER=paplay
-
-    elif command -v aplay &> /dev/null
-    then
-        AUDIO_PLAYER=paplay
-   
-    else
-        AUDIO_PLAYER=0
-    fi
-}
-
-
-play_alarm() {
-    # when session is finished, start the alarm
-    printf "Press 's' to stop alarm"
-    [ $1 -eq -1 ] && echo " and start next session" || echo ""
-
-    # turn on keypress again
-    stty echo
-
-    process_name="tomatoshell_alarm"
-
-    while :
-    do
-        # play alarm sound indefinetely until the 's' key is pressed
-        # aplay -d 0 $ALARM &>/dev/null & read -t 0.01 -r -s -N 1
-        [ -e /proc/"$(pidof "$process_name")"/status ] ||
-            bash -c "exec -a \"$process_name\" $AUDIO_PLAYER \"~/Documents/tomatoshell/etc/alarm.wav\" >/dev/null" & read -t 0.01 -r -s -n 1
-    
-        if [[ $REPLY == 's' ]]
-        then 
-            pkill -f "$process_name"
-            break
-        fi
-    done
-}
-
-
-display_countdown() {
-    start=$1
-
-    # yeahhhh I don̈́'t know what's going on here either
-    while [ "$start" -ge "$(date +%s)" ]
-    do
-        # due to the rendering of emoji's, the text needs to be offset to appear at the center.
-        # sleeping for one second between each print to stdout uses less cpu power, but will
-        # make the countdown have a discrepency of 1s which is negligable.
-        print_offset=10
-        $FIGLET && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
-        && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
-        echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
-        sleep 1
-    done
-}
-
-
-countdown() {
-    # args: $1 -> length of countdown in seconds, $2, session number (-1 = break)
-    msg="🍅Time left of session $2/$SESSIONS:🍅"
-    [ "$2" -eq -1 ] && msg="🍅Time left of break:🍅"
-    # date in seconds when countdown will end
-    start=$(($(date +%s) + $1)); 
-    session_number=$1
-
-    display_countdown $start
-
-    clear
-    [ $2 -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $2 finished"
-    
-    # message when session is finished
-    if [ $FIGLET -eq 1 ]
-    then
-        [ $2 -ne -1 ] && figlet -c -t "Session $2/$SESSIONS finished" || figlet -c -t "Break finished"
-    else
-
-        [ $2 -ne -1 ] && echo -e ""$GREEN"Session $2/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
-    fi
-
-    play_alarm "$session_number"
-    
-    # turn off keypress after input received
-    stty -echo
-    return 0
-}
-
-
-exit_p() {
-    # turn on cursor again
-    tput cnorm
-    # turn on keyboard input again
-    stty echo
-
-    echo -e ""$RED"\nexiting$FIN"
-    exit $1
-}
-
-
-main() {
-    find_sound_system
-
-    # when SIGINT is received, exit
-    trap "exit_p" 2
-
-    # turn off keyboard input and cursor
-    stty -echo
-    tput civis
-
-    # convert time and delay to from minutes to seconds
-    # have to divide by 1 to always get integer result
-    TIME=$(echo "($TIME * 60)/1" | bc)
-    DELAY=$(echo "($DELAY * 60)/1" | bc)
-
-    for ((i = 1; i <= $SESSIONS; i++))
-    do
-        clear
-        echo "Time left of session $i/$SESSIONS:"
-        countdown $TIME $i
-
-        # don't want to have a break after last session
-        [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
-    done
-}
-
 
 main
 exit_p 0
