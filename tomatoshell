@@ -51,7 +51,7 @@ find_sound_system() {
 
     elif command -v aplay &> /dev/null
     then
-        AUDIO_PLAYER=paplay
+        AUDIO_PLAYER=aplay
    
     else
         AUDIO_PLAYER=0
