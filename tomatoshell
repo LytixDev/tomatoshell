@@ -28,7 +28,7 @@ DELAY=5
 SESSIONS=4
 
 FIGLET=false
-ALARM="etc/alarm.wav"
+ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
 AUDIO_PLAYER=3
 
 # colors
@@ -40,7 +40,6 @@ FIN="\033[0m"
 
  
 find_sound_system() {
-
     if command -v mpv &> /dev/null
     then
         AUDIO_PLAYER=mpv
