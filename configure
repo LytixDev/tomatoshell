@@ -22,17 +22,19 @@ data_dir="$HOME/.local/share/$name"
 
 
 install() {
+    clean 2> /dev/null
     sudo cp $name $bin_dir &&
     mkdir -p "$data_dir" &&
     touch "$data_dir/$name_log" &&
+    echo "#date,sessions,session_length (in seconds)" >> "$data_dir/$name_log" &&
     cp etc/alarm.wav $data_dir &&
     exit 0
 }
 
 
 uninstall() {
-    sudo rm "$bin_dir/$name" &&
-    rm -rf "$data_dir" &&
+    sudo rm "$bin_dir/$name" 2> /dev/null &&
+    rm -rf "$data_dir" 2> /dev/null &&
     exit 0
 }
 
@@ -40,8 +42,7 @@ uninstall() {
 clean() {
     rm "$data_dir/$name_log" &&
     touch "$data_dir/$name_log" &&
-    cp etc/alarm.wav "$data_dir/" &&
-    exit 0
+    cp etc/alarm.wav "$data_dir/"
 }
 
 
@@ -64,7 +65,7 @@ then
     uninstall || exit 1
 fi
 
-[ "$1" = "clean" ] && clean
+[ "$1" = "clean" ] && clean && exit 0 || exit 1
 
 # if program executions ends here it means the user typed an invalid argument
 # i use printf here because echo -e is undefined in POSIX sh

@@ -29,6 +29,7 @@ SESSIONS=4
 
 FIGLET=false
 ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
+LOG="$HOME/.local/share/tomatoshell/tomatoshell_log.csv"
 AUDIO_PLAYER=3
 
 # colors
@@ -38,7 +39,13 @@ YELLOW="\033[0;33m"
 CYAN="\033[0;34m"
 FIN="\033[0m"
 
+
+write_to_log() {
+    date_f=$(date +"%Y-%m-%d")
+    echo "$date_f,$SESSIONS,$TIME" >> "$LOG"
+}
  
+
 find_sound_system() {
     if command -v mpv &> /dev/null
     then
@@ -95,7 +102,9 @@ display_countdown() {
         $FIGLET && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
         && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
-        sleep 1
+
+        # be able to exit while during a countdown
+        read -t 1 -r -s -N 1 && [[ $REPLY == 'q' ]] && exit_p
     done
 }
 
@@ -133,6 +142,8 @@ countdown() {
 
 
 exit_p() {
+    write_to_log
+
     # turn on cursor again
     tput cnorm
     # turn on keyboard input again
