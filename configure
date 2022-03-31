@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 24.03.2022 Nicolai Brand
+# Copyright 24.03.2022 - 31.03.2022 Nicolai Brand
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -18,27 +18,29 @@
 name="tomatoshell"
 name_log="tomatoshell_log.csv"
 bin_dir="/usr/local/bin"
-log_dir="$HOME/.local/share/$name"
+data_dir="$HOME/.local/share/$name"
 
 
 install() {
-    cp $name $bin_dir &&
-    mkdir -p "$log_dir" &&
-    touch "$log_dir/$name_log" &&
+    sudo cp $name $bin_dir &&
+    mkdir -p "$data_dir" &&
+    touch "$data_dir/$name_log" &&
+    cp etc/alarm.wav $data_dir &&
     exit 0
 }
 
 
 uninstall() {
-    rm "$bin_dir/$name" &&
-    rm -rf "$log_dir" &&
+    sudo rm "$bin_dir/$name" &&
+    rm -rf "$data_dir" &&
     exit 0
 }
 
 
 clean() {
-    rm "$log_dir/$name_log" &&
-    touch "$log_dir/$name_log" &&
+    rm "$data_dir/$name_log" &&
+    touch "$data_dir/$name_log" &&
+    cp etc/alarm.wav "$data_dir/" &&
     exit 0
 }
 
