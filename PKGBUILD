@@ -1,4 +1,4 @@
-# Maintainer: Nicolai Brand <nicolaibrand2002@gmail.com>
+# Maintainer: Nicolai Brand <nicolaibrand2002 at gmail dot com>
 pkgname=tomatoshell
 pkgver=r21.ed04b1c
 pkgrel=1
