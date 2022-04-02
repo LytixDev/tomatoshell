@@ -88,7 +88,7 @@ play_alarm() {
         if ! [ -e /proc/"$(pidof "$process_name")"/status ]
         then
             # janky :/
-            bash -c "exec -a $process_name xdg-open $ALARM &>/dev/null" &
+            bash -c "exec -a $process_name $AUDIO_PLAYER $ALARM &>/dev/null" &
         else
             read -t 0.01 -r -s -n 1
             [[ $REPLY == 's' ]] && pkill -f "$process_name" && break
