@@ -17,16 +17,16 @@
 
 HELP="
 -r,     prints total hours spent using tomatoshell and exits
--t,     time for every session in minutes [default:15 minutes]
+-t,     time for every session in minutes [default:25 minutes]
 -d,     delay between sessions in minutes [default:5 minutes]
--n,     total sessions [default:4]
+-n,     total sessions [default:3]
 -f,     figlet on
 -h,     shows this"
 
 # defaults
-TIME=15
+TIME=25
 DELAY=5
-SESSIONS=4
+SESSIONS=3
 
 FIGLET=false
 ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
@@ -54,6 +54,7 @@ total_hours_used() {
 }
  
 
+# TODO: add option for xdg-open
 find_sound_system() {
     if command -v mpv &> /dev/null
     then
@@ -87,7 +88,7 @@ play_alarm() {
         if ! [ -e /proc/"$(pidof "$process_name")"/status ]
         then
             # janky :/
-            bash -c "exec -a $process_name $AUDIO_PLAYER $ALARM &>/dev/null" &
+            bash -c "exec -a $process_name xdg-open $ALARM &>/dev/null" &
         else
             read -t 0.01 -r -s -n 1
             [[ $REPLY == 's' ]] && pkill -f "$process_name" && break
