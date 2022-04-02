@@ -16,6 +16,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 HELP="
+-r,     prints total hours spent using tomatoshell and exits
 -t,     time for every session in minutes [default:15 minutes]
 -d,     delay between sessions in minutes [default:5 minutes]
 -n,     total sessions [default:4]
@@ -43,6 +44,13 @@ FIN="\033[0m"
 write_to_log() {
     date_f=$(date +"%Y-%m-%d")
     echo "$date_f,$SESSIONS,$TIME" >> "$LOG"
+}
+
+
+total_hours_used() {
+    printf "$YELLOW Total hours spent focused: $FIN"
+    awk -F ',' '{sum+=$2 * $3;} END{printf "%d", int(sum / 3600);}' $LOG
+    printf "h 🍅🤓\n"
 }
  
 
@@ -185,6 +193,10 @@ main() {
 while [[ $# -gt 0 ]]
 do
     case $1 in
+        -r)
+            total_hours_used
+            exit 0
+            ;;
         -t|--time)
             TIME="$2"
             shift && shift # past argument and value

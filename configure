@@ -26,7 +26,6 @@ install() {
     sudo cp $name $bin_dir &&
     mkdir -p "$data_dir" &&
     touch "$data_dir/$name_log" &&
-    echo "#date,sessions,session_length (in seconds)" >> "$data_dir/$name_log" &&
     cp etc/alarm.wav $data_dir &&
     exit 0
 }
