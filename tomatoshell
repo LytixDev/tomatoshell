@@ -16,6 +16,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 HELP="
+-r,     prints total hours spent using tomatoshell and exits
 -t,     time for every session in minutes [default:15 minutes]
 -d,     delay between sessions in minutes [default:5 minutes]
 -n,     total sessions [default:4]
@@ -29,6 +30,7 @@ SESSIONS=4
 
 FIGLET=false
 ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
+LOG="$HOME/.local/share/tomatoshell/tomatoshell_log.csv"
 AUDIO_PLAYER=3
 
 # colors
@@ -38,7 +40,20 @@ YELLOW="\033[0;33m"
 CYAN="\033[0;34m"
 FIN="\033[0m"
 
+
+write_to_log() {
+    date_f=$(date +"%Y-%m-%d")
+    echo "$date_f,$SESSIONS,$TIME" >> "$LOG"
+}
+
+
+total_hours_used() {
+    printf "$YELLOW Total hours spent focused: $FIN"
+    awk -F ',' '{sum+=$2 * $3;} END{printf "%d", int(sum / 3600);}' $LOG
+    printf "h 🍅🤓\n"
+}
  
+
 find_sound_system() {
     if command -v mpv &> /dev/null
     then
@@ -95,7 +110,9 @@ display_countdown() {
         $FIGLET && clear && printf "%*s\n" $(((${#msg}+$COLUMNS+$print_offset)/2)) "$msg" \
         && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
-        sleep 1
+
+        # be able to exit while during a countdown
+        read -t 1 -r -s -N 1 && [[ $REPLY == 'q' ]] && exit_p
     done
 }
 
@@ -133,6 +150,8 @@ countdown() {
 
 
 exit_p() {
+    write_to_log
+
     # turn on cursor again
     tput cnorm
     # turn on keyboard input again
@@ -174,6 +193,10 @@ main() {
 while [[ $# -gt 0 ]]
 do
     case $1 in
+        -r)
+            total_hours_used
+            exit 0
+            ;;
         -t|--time)
             TIME="$2"
             shift && shift # past argument and value
