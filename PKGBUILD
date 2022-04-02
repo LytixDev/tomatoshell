@@ -5,8 +5,8 @@ pkgrel=1
 pkgdesc="Pomodoro timer in the shell"
 arch=("x86_64")
 url="https://github.com/lytixDev/tomatoshell"
-license=('GPL v2')
-depends=("alsa-lib")
+license=('GPL2')
+depends=("alsa-lib" "gawk")
 optdepends=("figlet: cool text"
             "mpv: play alarm sound"
             "pulseaudio: better sound")
