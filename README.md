@@ -5,7 +5,6 @@ tomatoshell is a simple <a href="https://en.wikipedia.org/wiki/Pomodoro_Techniqu
 
 ## Installation
 
-(still pending)
 On Arch-based distribution, you can use the AUR (Arch User Repository).
 
 ```
@@ -23,11 +22,12 @@ That's it.
 #### Dependencies
 
 - `git` - to download the source code (required at install).
-- `bash` - shell scripting language. Is installed by default on 99% of distros.
-- `alsa-lib` - audio support for linux.  Is installed by default on 99% of distros.
+- `bash` - shell scripting language.
+- `alsa-lib` - audio support for linux. Almost certain to be installed already.
+- `bc` - arithmetic.
 
 #### Optional dependencies 
-- `gawk/awk` - for arithmetic on log file. Is installed by default on 99% of distros.
+- `gawk/awk` - for arithmetic on log file.
 - `figlet` - for cool text using the `-f` argument.
 - `pulseaudio and mpv` - better playback of alarm.
 - `notify-send` - sends notification when a session is ended. A notification deamon is also needed for this.
