@@ -53,6 +53,6 @@ $ tomatoshell
 - `-n` - total sessions [default:3]
 - `-f` - figlet on
 
-Press the 'q' key at any point during normal program execution to exit properly.
+Press the 'q' key at any point during normal program execution to exit properly, or press the 's' key to skip the current countdown (session or break).
 
 After installation the program will create a datafolder in `$HOME/.local/share/tomatoshell`. Here the alarm, `alarm.wav`, and the logfile `tomatoshell_log.csv` is located. The alarm can be swapped out for any other audio file that is compatible with the user's chosen audio player. The log file is a csv file with its columns being on the form: "date,number of sessions,seconds per session". The `-r` argument only tallies up the time spent in hours. Feel free to create some more cool statistics using the data.

@@ -112,8 +112,11 @@ display_countdown() {
         && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
 
-        # be able to exit while during a countdown
-        read -t 1 -r -s -N 1 && [[ $REPLY == 'q' ]] && exit_p
+        # be able to exit or skip while during a countdown
+        read -t 1 -r -s -N 1 && {
+		[[ $REPLY == 'q' ]] && exit_p ||
+		[[ $REPLY == 's' ]] && break
+	}
     done
 }
 
