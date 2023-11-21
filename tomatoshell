@@ -21,6 +21,7 @@ HELP="
 -d,     delay between sessions in minutes [default:5 minutes]
 -n,     total sessions [default:3]
 -f,     figlet on
+-p,     pause key to use during countdown [default:none]
 -h,     shows this"
 
 # defaults
@@ -32,6 +33,7 @@ FIGLET=false
 ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
 LOG="$HOME/.local/share/tomatoshell/tomatoshell_log.csv"
 AUDIO_PLAYER=3
+PAUSE_KEY = 'p'
 
 # colors
 RED="\033[0;31m"
@@ -118,11 +120,23 @@ display_countdown() {
         && echo -ne "$(date -u --date @$((start - $(date +%s))) +%M:%S)\r" | figlet -c -t ||
         echo -ne "$CYAN\Uf061 $YELLOW $(date -u --date @$((start - $(date +%s))) +%M:%S)$FIN  🍅\r"
 
-        # be able to exit or skip while during a countdown
         read -t 1 -r -s -N 1 && {
-		[[ $REPLY == 'q' ]] && exit_p ||
-		[[ $REPLY == 's' ]] && break
-	}
+        if [[ $REPLY == 'q' ]]; then
+            exit_p
+        elif [[ $REPLY == 's' ]]; then
+            break
+        elif [[ $REPLY == 'p' ]]; then
+            echo -e "\n$YELLOW Paused... Press p to resume $FIN"
+            while : ; 
+            do
+                read -r -s -N 1 key
+                if [[ $REPLY == 'p' ]]; then
+                    echo -e "$GREEN Resuming...$FIN"
+                    break
+                fi
+            done
+        fi
+        }
     done
 }
 
@@ -219,6 +233,10 @@ do
             SESSIONS="$2"
             shift && shift
             ;;
+        -p)
+            PAUSE_KEY="$2"
+            shift && shift
+            ;;
         -f)
             if command -v figlet &> /dev/null
             then
@@ -230,7 +248,6 @@ do
                 # maybe add a keypress to start regardless
                 sleep 3
             fi
-
 
             shift
             ;;
