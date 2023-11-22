@@ -127,10 +127,14 @@ display_countdown() {
             break
         elif [[ $REPLY == 'p' ]]; then
             echo -e "\n$YELLOW Paused... Press p to resume $FIN"
+            local pause_time=$(date +%s)
             while : ; 
             do
                 read -r -s -N 1 key
                 if [[ $REPLY == 'p' ]]; then
+                 local resume_time=$(date +%s)  # Get the current time after resuming
+                        local paused_duration=$((resume_time - pause_time))  # Calculate the duration of the pause
+                        start=$((start + paused_duration))  # Adjust the end time by adding the paused duration
                     echo -e "$GREEN Resuming...$FIN"
                     break
                 fi
