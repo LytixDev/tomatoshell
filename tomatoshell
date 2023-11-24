@@ -51,7 +51,7 @@ write_to_log() {
 
 total_hours_used() {
     printf "$YELLOW Total hours spent focused: $FIN"
-    awk -F ',' '{sum+=$2 * $3;} END{printf "%d", int(sum / 3600);}' $LOG
+    awk -F ',' '{sum+=$2 * $3;} END{printf "%d", int(sum / 3600);}' "$LOG"
     printf "h 🍅🤓\n"
 }
 
@@ -85,7 +85,7 @@ find_sound_system() {
 play_alarm() {
     # when session is finished, start the alarm
     printf "Press 's' to stop alarm"
-    [ $1 -eq -1 ] && echo " and start next session" || echo ""
+    [ "$1" -eq -1 ] && echo " and start next session" || echo ""
 
     process_name="tomatoshell_alarm"
 
@@ -149,7 +149,7 @@ countdown() {
     time=$1
     session_number=$2
     msg="🍅Time left of session $session_number/$SESSIONS:🍅"
-    [ $session_number -eq -1 ] && msg="🍅Time left of break:🍅"
+    [ "$session_number" -eq -1 ] && msg="🍅Time left of break:🍅"
 
     # date in seconds when countdown will end
     start=$(($(date +%s) + $1)); 
@@ -157,15 +157,15 @@ countdown() {
     display_countdown $start
     clear
 
-    [ $session_number -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $session_number finished"
+    [ "$session_number" -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $session_number finished"
     
     # message when session is finished
     if $FIGLET
     then
-        [ $session_number -ne -1 ] && figlet -c -t "Session $session_number/$SESSIONS finished" || figlet -c -t "Break finished"
+        [ "$session_number" -ne -1 ] && figlet -c -t "Session $session_number/$SESSIONS finished" || figlet -c -t "Break finished"
     else
 
-        [ $session_number -ne -1 ] && echo -e ""$GREEN"Session $session_number/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
+        [ "$session_number" -ne -1 ] && echo -e ""$GREEN"Session $session_number/$SESSIONS finished$FIN" || echo -e "$GREEN""Break finished$FIN"
     fi
 
     # turn on keypress so we can receive input from user as to when to stop the alarm
@@ -209,10 +209,10 @@ main() {
     do
         clear
         echo "Time left of session $i/$SESSIONS:"
-        countdown $TIME $i
+        countdown "$TIME" "$i"
 
         # don't want to have a break after last session
-        [ $i -ne $SESSIONS ] &&  clear && echo "Time left of break:" && countdown $DELAY -1
+        [ "$i" -ne "$SESSIONS" ] &&  clear && echo "Time left of break:" && countdown "$DELAY" -1
     done
 }
 
