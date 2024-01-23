@@ -33,7 +33,7 @@ FIGLET=false
 ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
 LOG="$HOME/.local/share/tomatoshell/tomatoshell_log.csv"
 AUDIO_PLAYER=3
-PAUSE_KEY = 'p'
+PAUSE_KEY ='p'
 
 # colors
 RED="\033[0;31m"
