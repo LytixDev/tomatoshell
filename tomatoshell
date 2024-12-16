@@ -42,10 +42,15 @@ YELLOW="\033[0;33m"
 CYAN="\033[0;34m"
 FIN="\033[0m"
 
+COMPLETED_SESSIONS=0
+ACTUAL_TIME=0
+
 
 write_to_log() {
     date_f=$(date +"%Y-%m-%d")
-    echo "$date_f,$SESSIONS,$TIME" >> "$LOG"
+    # Convert ACTUAL_TIME back to minutes for logging
+    actual_minutes=$((ACTUAL_TIME / 60))
+    echo "$date_f,$COMPLETED_SESSIONS,$actual_minutes" >> "$LOG"
 }
 
 
@@ -153,11 +158,17 @@ countdown() {
 
     # date in seconds when countdown will end
     start=$(($(date +%s) + $1)); 
+    initial_time=$1  # Store initial time value
 
     display_countdown $start
     clear
 
-    [ $session_number -ne -1 ] && notify-send -t 10000 -u "normal" "Session number $session_number finished"
+    # If this was a work session (not a break), increment completed sessions and time
+    if [ $session_number -ne -1 ]; then
+        COMPLETED_SESSIONS=$((COMPLETED_SESSIONS + 1))
+        ACTUAL_TIME=$((ACTUAL_TIME + initial_time))
+        notify-send -t 10000 -u "normal" "Session number $session_number finished"
+    fi
     
     # message when session is finished
     if $FIGLET
