@@ -15,8 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
-HELP="
--r,     prints total hours spent using tomatoshell and exits
+HELP="-r,     prints total hours spent using tomatoshell and exits
 -t,     time for every session in minutes [default:25 minutes]
 -d,     delay between sessions in minutes [default:5 minutes]
 -n,     total sessions [default:3]
@@ -33,7 +32,7 @@ FIGLET=false
 ALARM="$HOME/.local/share/tomatoshell/alarm.wav"
 LOG="$HOME/.local/share/tomatoshell/tomatoshell_log.csv"
 AUDIO_PLAYER=3
-PAUSE_KEY = 'p'
+PAUSE_KEY='p'
 
 # colors
 RED="\033[0;31m"
